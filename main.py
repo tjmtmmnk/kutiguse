@@ -1,3 +1,5 @@
+import math
+
 from janome.tokenizer import Tokenizer, Token
 from collections import defaultdict
 
@@ -5,7 +7,9 @@ tokenizer = Tokenizer()
 
 sentences = [
     "変な話今日は雨が降りそう",
-    "変な人"
+    "変な人",
+    "今日はこれをしてもよかったですか",
+    "これでよかったですか"
 ]
 
 MAX_NGRAM_N = 5
@@ -42,7 +46,7 @@ def enumerate_ngram_candidates(input_texts: list[str]) -> list[str]:
 # s_id_to_w_to_count: 筆者idとその筆者の形態素列と回数
 # w: 形態素
 # s_id: 筆者id
-def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str):
+def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> int:
     total_w_count = 0
     for s_to_count in s_id_to_w_to_count.values():
         for count in s_to_count.values():
@@ -55,5 +59,15 @@ def calc_fp1(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -
     for _s_id in s_id_to_w_to_count.keys():
         all_s_tf += calc_tf(s_id_to_w_to_count, w, _s_id)
     return pow(calc_tf(s_id_to_w_to_count, w, s_id), 2) / all_s_tf
+
+
+def calc_fp2(s_id_to_w_to_count: dict[str, dict[str, int]], w: str) -> int:
+    s_count = 0
+    for s_id in s_id_to_w_to_count.keys():
+        for _w in s_id_to_w_to_count[s_id].keys():
+            if _w == w:
+                s_count += 1
+                break
+    return 1 / (-s_count * ((1 / s_count) * (math.log2(1 / s_count))) + 1) if s_count > 0 else 1
 
 # print(enumerate_ngram_candidates(sentences))
