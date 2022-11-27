@@ -133,16 +133,25 @@ def calc_fp4(s_id_to_w_to_left_right: dict[str, dict[str, list[str, str]]], w: s
 if __name__ == '__main__':
     filenames = os.listdir('data')
     s_id_to_w_to_count = {}
+    s_id_to_w_to_left_right = {}
 
-    for filename in filenames:
+    for filename in filenames[0:100]:
         with open(os.path.join('data', filename), mode="r") as f:
             saved_list: list = json.loads(f.read())
             for sl in saved_list:
                 w_to_count = defaultdict(lambda: 0)
+                w_to_left_right = defaultdict(lambda: [''] * 2)
                 for grams in sl["ngram_list"]:
-                    for morpheme in grams:
+                    for i in range(len(grams)):
+                        morpheme = grams[i]
                         w_to_count[morpheme] += 1
+                        if i - 1 > -1:
+                            w_to_left_right[morpheme][0] = grams[i - 1]
+                        if i + 1 < len(grams):
+                            w_to_left_right[morpheme][1] = grams[i + 1]
+
                 s_id_to_w_to_count[sl["author_id"]] = w_to_count
+                s_id_to_w_to_left_right[sl["author_id"]] = w_to_left_right
 
     candidates = enumerate_ngram_candidates(sentences)
 
@@ -155,11 +164,12 @@ if __name__ == '__main__':
 
     s_id_to_w_to_count["me"] = w_to_count
 
-    # print(s_id_to_w_to_count["me"])
-    print(candidates)
     cand_with_fp = []
     for cand in candidates:
-        fp = calc_fp1(s_id_to_w_to_count, cand, "me") * calc_fp2(s_id_to_w_to_count, cand)
+        fp1 = calc_fp1(s_id_to_w_to_count, cand, "me")
+        fp2 = calc_fp2(s_id_to_w_to_count, cand)
+        fp4 = calc_fp4(s_id_to_w_to_left_right, cand)
+        fp = fp1 * fp2 * (1 / fp4 if fp4 > 1 else fp4 if fp4 > 0 else 1)
         cand_with_fp.append({
             "morpheme": cand,
             "fp": fp,
