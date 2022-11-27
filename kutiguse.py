@@ -15,6 +15,10 @@ sentences = [
 MAX_NGRAM_N = 5
 
 
+def tokenize(text: str) -> list[Token]:
+    return list(tokenizer.tokenize(text))
+
+
 def ngram(tokens: list[Token], n: int) -> list[str]:
     grams = []
     for i in range(len(tokens)):
@@ -30,7 +34,7 @@ def ngram(tokens: list[Token], n: int) -> list[str]:
 def enumerate_ngram_candidates(input_texts: list[str]) -> list[str]:
     ngram_to_text_set = defaultdict(lambda: set())
     for i, text in enumerate(input_texts):
-        tokens = list(tokenizer.tokenize(text))
+        tokens = tokenize(text)
         for j in range(1, MAX_NGRAM_N):
             jgram = ngram(tokens, j)
             for jg in jgram:
@@ -46,7 +50,7 @@ def enumerate_ngram_candidates(input_texts: list[str]) -> list[str]:
 # s_id_to_w_to_count: 筆者idとその筆者の形態素列と回数
 # w: 形態素
 # s_id: 筆者id
-def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> int:
+def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> float:
     total_w_count = 0
     for s_to_count in s_id_to_w_to_count.values():
         for count in s_to_count.values():
@@ -54,14 +58,14 @@ def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) ->
     return s_id_to_w_to_count[s_id][w] / total_w_count
 
 
-def calc_fp1(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> int:
+def calc_fp1(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> float:
     all_s_tf = 0
     for _s_id in s_id_to_w_to_count.keys():
         all_s_tf += calc_tf(s_id_to_w_to_count, w, _s_id)
     return pow(calc_tf(s_id_to_w_to_count, w, s_id), 2) / all_s_tf
 
 
-def calc_fp2(s_id_to_w_to_count: dict[str, dict[str, int]], w: str) -> int:
+def calc_fp2(s_id_to_w_to_count: dict[str, dict[str, int]], w: str) -> float:
     s_count = 0
     for s_id in s_id_to_w_to_count.keys():
         for _w in s_id_to_w_to_count[s_id].keys():

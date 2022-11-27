@@ -1,45 +1,45 @@
+import json
 import os
-import re
 
 import tweepy
 from tweepy import Tweet
+from text import clean_text
+from kutiguse import ngram, tokenize
 
 client = tweepy.Client(os.environ['BEARER_TOKEN'])
-res = client.search_recent_tweets(query="ワールドカップ -is:retweet -has:hashtags lang:ja -has:links -has:media -is:reply",
-                                  expansions='author_id',
-                                  )
 
 
-# from: https://gist.github.com/n1n9-jp/5857d7725f3b14cbc8ec3e878e4307ce
-def remove_emoji(string):
-    emoji_pattern = re.compile("["
-                               u"\U00002700-\U000027BF"  # Dingbats
-                               u"\U0001F600-\U0001F64F"  # Emoticons
-                               u"\U00002600-\U000026FF"  # Miscellaneous Symbols
-                               u"\U0001F300-\U0001F5FF"  # Miscellaneous Symbols And Pictographs
-                               u"\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
-                               u"\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
-                               u"\U0001F680-\U0001F6FF"  # Transport and Map Symbols
-                               "]+", flags=re.UNICODE)
-    return emoji_pattern.sub(r'。', string)
+def collect_tweet_from_topic(topic: str):
+    res = client.search_recent_tweets(
+        query=f'{topic} -is:retweet -has:hashtags lang:ja -has:links -has:media -is:reply',
+        expansions='author_id',
+    )
+    for t in res.data:
+        tweet: Tweet = t
+        ngram_list = []
+        text = clean_text(tweet.text)
+        tokens = tokenize(text)
+        for i in range(1, 5):
+            ngram_list.append(ngram(tokens, i))
+        out = {
+            "author_id": tweet.author_id,
+            "topic": topic,
+            "ngram_list": ngram_list
+        }
+        filepath = os.path.join("data", f'{tweet.author_id}.txt')
+
+        try:
+            with open(filepath, mode='r') as f:
+                saved_list: list = json.loads(f.read())
+        except FileNotFoundError:
+            saved_list = []
+
+        saved_list.append(out)
+
+        with open(filepath, mode='w') as f:
+            f.write(json.dumps(saved_list, ensure_ascii=False))
 
 
-def clean_text(text: str) -> str:
-    special_character_pattern = re.compile('["#$%&\'\\\\()*+-/:;<=>@[\\]^_`{|}~「」〔〕“”〈〉『』【】＆＊・（）＄＃＠｀＋￥％]')
-    cleaned_text = special_character_pattern.sub(r'', text)
-    cleaned_text = remove_emoji(cleaned_text)
-
-    cleaned_text = cleaned_text.replace("\n", "")
-    cleaned_text = cleaned_text.replace(r'((。|．)\s*)+', "。")
-    cleaned_text = cleaned_text.replace(r'((、|,)\s*)+', "、")
-    cleaned_text = cleaned_text.replace(r'((…|‥)\s*)', "。")
-    cleaned_text = cleaned_text.replace(r'((？|?)\s*)', "？")
-    cleaned_text = cleaned_text.replace(r'((！|!)\s*)', "。")
-
-    return cleaned_text
-
-
-for t in res.data:
-    tweet: Tweet = t
-
-    print(str(tweet.author_id) + " " + clean_text(tweet.text))
+if __name__ == '__main__':
+    for topic in ['寿司', '公式', '感動']:
+        collect_tweet_from_topic(topic)
