@@ -104,42 +104,66 @@ def calc_fp2(s_id_to_w_to_count: dict[str, dict[str, int]], w: str) -> float:
     return 1 / (-s_count * ((1 / s_count) * (math.log2(1 / s_count))) + 1) if s_count > 0 else 1
 
 
+def calc_fp4(s_id_to_w_to_left_right: dict[str, dict[str, list[str, str]]], w: str) -> float:
+    left_to_count = defaultdict(lambda: 0)
+    right_to_count = defaultdict(lambda: 0)
+    for w_to_left_right in s_id_to_w_to_left_right.values():
+        try:
+            left_to_count[w_to_left_right[w][0]] += 1
+            right_to_count[w_to_left_right[w][1]] += 1
+        except KeyError:
+            continue
+
+    left_total = sum(left_to_count.values())
+    left_entropy = 0
+    for left_count in left_to_count.values():
+        left_entropy -= (left_count / left_total) * math.log2(left_count / left_total)
+
+    right_total = sum(right_to_count.values())
+    right_entropy = 0
+    for right_count in right_to_count.values():
+        right_entropy -= (right_count / right_total) * math.log2(right_count / right_total)
+
+    return math.sqrt(left_entropy * right_entropy)
+
+
 # print(enumerate_ngram_candidates(sentences))
 
 
-filenames = os.listdir('data')
-s_id_to_w_to_count = {}
+if __name__ == '__main__':
+    filenames = os.listdir('data')
+    s_id_to_w_to_count = {}
 
-for filename in filenames:
-    with open(os.path.join('data', filename), mode="r") as f:
-        saved_list: list = json.loads(f.read())
-        for sl in saved_list:
-            w_to_count = defaultdict(lambda: 0)
-            for grams in sl["ngram_list"]:
-                for morpheme in grams:
-                    w_to_count[morpheme] += 1
-            s_id_to_w_to_count[sl["author_id"]] = w_to_count
+    for filename in filenames:
+        with open(os.path.join('data', filename), mode="r") as f:
+            saved_list: list = json.loads(f.read())
+            for sl in saved_list:
+                w_to_count = defaultdict(lambda: 0)
+                for grams in sl["ngram_list"]:
+                    for morpheme in grams:
+                        w_to_count[morpheme] += 1
+                s_id_to_w_to_count[sl["author_id"]] = w_to_count
 
-candidates = enumerate_ngram_candidates(sentences)
+    candidates = enumerate_ngram_candidates(sentences)
 
-w_to_count = defaultdict(lambda: 0)
-for text in sentences:
-    tokens = tokenize(text)
-    for i in range(1, 5):
-        for morpheme in ngram(tokens, i):
-            w_to_count[morpheme] += 1
+    w_to_count = defaultdict(lambda: 0)
+    for text in sentences:
+        tokens = tokenize(text)
+        for i in range(1, 5):
+            for morpheme in ngram(tokens, i):
+                w_to_count[morpheme] += 1
 
-s_id_to_w_to_count["me"] = w_to_count
+    s_id_to_w_to_count["me"] = w_to_count
 
-# print(s_id_to_w_to_count["me"])
-print(candidates)
-cand_with_fp = []
-for cand in candidates:
-    fp = calc_fp1(s_id_to_w_to_count, cand, "me") * calc_fp2(s_id_to_w_to_count, cand)
-    cand_with_fp.append({
-        "morpheme": cand,
-        "fp": fp,
-    })
+    # print(s_id_to_w_to_count["me"])
+    print(candidates)
+    cand_with_fp = []
+    for cand in candidates:
+        fp = calc_fp1(s_id_to_w_to_count, cand, "me") * calc_fp2(s_id_to_w_to_count, cand)
+        cand_with_fp.append({
+            "morpheme": cand,
+            "fp": fp,
+        })
 
-for i, c in enumerate(sorted(cand_with_fp, key=lambda x: x["fp"], reverse=True)):
-    print(f'{i}位: {c["morpheme"]}')
+    for i, c in enumerate(sorted(cand_with_fp, key=lambda x: x["fp"], reverse=True)):
+        print(f'{i}位: {c["morpheme"]}')
