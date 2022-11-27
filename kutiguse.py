@@ -91,7 +91,7 @@ def calc_fp1(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -
     all_s_tf = 0
     for _s_id in s_id_to_w_to_count.keys():
         all_s_tf += calc_tf(s_id_to_w_to_count, w, _s_id)
-    return pow(calc_tf(s_id_to_w_to_count, w, s_id), 2) / all_s_tf
+    return pow(calc_tf(s_id_to_w_to_count, w, s_id), 2) / all_s_tf if all_s_tf > 0 else 1
 
 
 def calc_fp2(s_id_to_w_to_count: dict[str, dict[str, int]], w: str) -> float:
