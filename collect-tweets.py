@@ -22,7 +22,7 @@ def collect_tweet_from_topic(topic: str):
         for i in range(1, 5):
             ngram_list.append(ngram(tokens, i))
         out = {
-            "author_id": tweet.author_id,
+            "author_id": str(tweet.author_id),
             "topic": topic,
             "ngram_list": ngram_list
         }
