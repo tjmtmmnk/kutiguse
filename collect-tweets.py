@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import tweepy
 from tweepy import Tweet
@@ -41,5 +42,10 @@ def collect_tweet_from_topic(topic: str):
 
 
 if __name__ == '__main__':
-    for topic in ['寿司', '公式', '感動']:
-        collect_tweet_from_topic(topic)
+    with open('formatted-words.txt', mode='r') as f:
+        # https://kyoan.u-biq.org/tangosearch.html
+        # for(const row of t.rows) {const d = row.querySelector('td:nth-child(3)')?.textContent; if(d && d !== '') res.push(d) }
+        words = json.loads(f.read())
+    for w in words:
+        collect_tweet_from_topic(w)
+        time.sleep(1)
