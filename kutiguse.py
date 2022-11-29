@@ -40,6 +40,16 @@ sentences = [
     'しばくぞお前。絶対考えてるやん',
     'しばくぞお前。結局アフリカかい',  # 口癖に突っ込む 2:26 まで
 ]
+#
+# sentences = [
+#     'どっか行こか',
+#     'どこ行く',
+#     'これしてよかったですか',
+#     'よいですね',
+#     '掲載よかったですか',
+#     'どこにありますか',
+#     'どっか行きました'
+# ]
 
 MAX_NGRAM_N = 5
 
@@ -60,19 +70,23 @@ def ngram(tokens: list[Token], n: int) -> list[str]:
     return grams
 
 
-def enumerate_ngram_candidates(input_texts: list[str]) -> list[str]:
-    ngram_to_text_set = defaultdict(lambda: set())
+# return
+# { morpheme => str, count => int }
+def enumerate_ngram_candidates(input_texts: list[str]) -> list[dict]:
+    morpheme_to_text_set = defaultdict(lambda: set())
     for i, text in enumerate(input_texts):
         tokens = tokenize(text)
         for j in range(1, MAX_NGRAM_N):
-            jgram = ngram(tokens, j)
-            for jg in jgram:
-                ngram_to_text_set[jg].add(i)  # 同一文章では同じトークンを最大1回しかカウントしないように制限する
-    ngram_candidates = []
-    for g, texts in ngram_to_text_set.items():
+            for m in ngram(tokens, j):
+                morpheme_to_text_set[m].add(i)  # 同一文章では同じトークンを最大1回しかカウントしないように制限する
+    candidates = []
+    for m, texts in morpheme_to_text_set.items():
         if len(texts) > 1:
-            ngram_candidates.append(g)
-    return ngram_candidates
+            candidates.append({
+                "morpheme": m,
+                "count": len(texts),
+            })
+    return candidates
 
 
 # 筆者が形態素を出現させた頻度
@@ -80,10 +94,7 @@ def enumerate_ngram_candidates(input_texts: list[str]) -> list[str]:
 # w: 形態素
 # s_id: 筆者id
 def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> float:
-    total_w_count = 0
-    for s_to_count in s_id_to_w_to_count.values():
-        for count in s_to_count.values():
-            total_w_count += count
+    total_w_count = sum(s_id_to_w_to_count[s_id].values())
     return s_id_to_w_to_count[s_id][w] / total_w_count
 
 
@@ -156,24 +167,29 @@ if __name__ == '__main__':
     candidates = enumerate_ngram_candidates(sentences)
 
     w_to_count = defaultdict(lambda: 0)
-    for text in sentences:
-        tokens = tokenize(text)
-        for i in range(1, 5):
-            for morpheme in ngram(tokens, i):
-                w_to_count[morpheme] += 1
+    for cand in candidates:
+        w_to_count[cand["morpheme"]] += cand["count"]
 
     s_id_to_w_to_count["me"] = w_to_count
 
+    # print(s_id_to_w_to_count["me"])
+
     cand_with_fp = []
     for cand in candidates:
-        fp1 = calc_fp1(s_id_to_w_to_count, cand, "me")
-        fp2 = calc_fp2(s_id_to_w_to_count, cand)
-        fp4 = calc_fp4(s_id_to_w_to_left_right, cand)
-        fp = fp1 * fp2 * (1 / fp4 if fp4 > 1 else fp4 if fp4 > 0 else 1)
+        fp1 = calc_fp1(s_id_to_w_to_count, cand["morpheme"], "me")
+        fp2 = calc_fp2(s_id_to_w_to_count, cand["morpheme"])
+        fp4 = calc_fp4(s_id_to_w_to_left_right, cand["morpheme"])
+        # print(f'{cand["morpheme"]}:\tfp1:{fp1}\tfp2:{fp2}\tfp4:{fp4}')
+        fp = fp1 * fp2 * (1 / fp4 if fp4 > 1 else fp4 if fp4 > 0 else 5)
         cand_with_fp.append({
-            "morpheme": cand,
+            "morpheme": cand["morpheme"],
             "fp": fp,
         })
 
-    for i, c in enumerate(sorted(cand_with_fp, key=lambda x: x["fp"], reverse=True)):
-        print(f'{i}位: {c["morpheme"]}')
+    rank = 0
+    last_fp = 0
+    for c in sorted(cand_with_fp, key=lambda x: x["fp"], reverse=True):
+        if c["fp"] != last_fp:
+            rank += 1
+        print(f'{rank}位:\tfp:{c["fp"]}\t{c["morpheme"]}')
+        last_fp = c["fp"]
