@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
     rank = 0
     last_fp = 0
-    for c in sorted(cand_with_fp, key=lambda x: x["fp"], reverse=True):
+    for c in sorted(cand_with_fp, key=lambda x: (x["fp"], len(x["morpheme"])), reverse=True):
         if c["fp"] != last_fp:
             rank += 1
         print(f'{rank}位:\tfp:{c["fp"]}\t{c["morpheme"]}')
