@@ -125,15 +125,15 @@ def calc_fp4(s_id_to_w_to_left_right: dict[str, dict[str, list[str, str]]], w: s
         except KeyError:
             continue
 
-    left_total = sum(left_to_count.values())
-    left_entropy = 0
-    for left_count in left_to_count.values():
-        left_entropy -= (left_count / left_total) * math.log2(left_count / left_total)
+    def calc_entropy(x_to_count: dict[str, int]) -> float:
+        total = sum(x_to_count.values())
+        entropy = 0
+        for count in x_to_count.values():
+            entropy -= (count / total) * math.log2(count / total)
+        return entropy
 
-    right_total = sum(right_to_count.values())
-    right_entropy = 0
-    for right_count in right_to_count.values():
-        right_entropy -= (right_count / right_total) * math.log2(right_count / right_total)
+    left_entropy = calc_entropy(left_to_count)
+    right_entropy = calc_entropy(right_to_count)
 
     return math.sqrt(left_entropy * right_entropy)
 
