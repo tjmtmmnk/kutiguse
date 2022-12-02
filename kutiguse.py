@@ -80,16 +80,15 @@ def enumerate_ngram_candidates(input_texts: list[str]) -> list[dict]:
     return candidates
 
 
-# 筆者が形態素を出現させた頻度
 # s_id_to_w_to_count: 筆者idとその筆者の形態素列と回数
 # w: 形態素
 # s_id: 筆者id
-def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> float:
-    total_w_count = sum(s_id_to_w_to_count[s_id].values())
-    return s_id_to_w_to_count[s_id][w] / total_w_count
-
-
 def calc_fp1(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> float:
+    # 筆者が形態素を出現させた頻度
+    def calc_tf(s_id_to_w_to_count: dict[str, dict[str, int]], w: str, s_id: str) -> float:
+        total_w_count = sum(s_id_to_w_to_count[s_id].values())
+        return s_id_to_w_to_count[s_id][w] / total_w_count
+
     all_s_tf = 0
     for _s_id in s_id_to_w_to_count.keys():
         all_s_tf += calc_tf(s_id_to_w_to_count, w, _s_id)
